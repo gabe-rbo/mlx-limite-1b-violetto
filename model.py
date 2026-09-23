@@ -87,7 +87,7 @@ def rms_norm(x: mx.array, eps: Optional[float] = None) -> mx.array:
     return x * mx.rsqrt(mx.mean(mx.square(x), axis=-1, keepdims=True) + eps)
 
 
-class LimiteRotary(nn.Module):
+class LimiteRotary:
     """Partial, adjacent-pair-interleaved rotary with an odd-lane sign flip.
 
     Rotates only the first 2 * rope_n_pairs dimensions (64 out of 128).

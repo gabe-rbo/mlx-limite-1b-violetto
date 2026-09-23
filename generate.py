@@ -83,17 +83,17 @@ def main():
     print(args.prompt)
     print("\n--- Limite 1B Solution ---")
 
-    gen_kwargs = {
-        "temp": args.temperature,
-        "top_p": args.top_p,
-    }
+    sampler = mlx_lm.sample_utils.make_sampler(
+        temp=args.temperature,
+        top_p=args.top_p,
+    )
 
     response_stream = mlx_lm.stream_generate(
         model=model,
         tokenizer=tokenizer,
         prompt=formatted_input,
         max_tokens=args.max_tokens,
-        **gen_kwargs,
+        sampler=sampler,
     )
 
     stats = None
