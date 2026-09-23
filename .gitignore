@@ -32,3 +32,8 @@ mlx_model/
 *.pt
 
 .DS_Store
+
+# @gabematica instagram post
+generate_instagram_slides.py
+instagram_slides
+.idea/

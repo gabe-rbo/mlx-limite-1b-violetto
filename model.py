@@ -110,17 +110,26 @@ class LimiteRotary:
         sign[1::2] = -1.0
         self.sin_sign = sign
 
-    def __call__(self, x: mx.array, offset: int = 0) -> mx.array:
+    def __call__(self, x: mx.array, offset: Union[int, mx.array] = 0) -> mx.array:
         # x is [B, num_heads, S, head_dim]
+        B = x.shape[0]
         S = x.shape[2]
-        positions = mx.arange(offset, offset + S, dtype=mx.float32)
-        theta = positions[:, None] * self.freq[None, :]
-        cos = mx.cos(theta).astype(x.dtype)
-        sin = (mx.sin(theta) * self.sin_sign).astype(x.dtype)
-
-        # Broadcast across batch and head dims
-        cos = mx.expand_dims(cos, (0, 1))
-        sin = mx.expand_dims(sin, (0, 1))
+        if isinstance(offset, mx.array) and offset.ndim > 0:
+            positions = mx.arange(S, dtype=mx.float32)[None, :] + offset[:, None]
+            theta = positions[:, :, None] * self.freq[None, None, :]
+            cos = mx.cos(theta).astype(x.dtype)
+            sin = (mx.sin(theta) * self.sin_sign).astype(x.dtype)
+            cos = mx.expand_dims(cos, 1)
+            sin = mx.expand_dims(sin, 1)
+        else:
+            if isinstance(offset, mx.array):
+                offset = int(offset.item())
+            positions = mx.arange(offset, offset + S, dtype=mx.float32)
+            theta = positions[:, None] * self.freq[None, :]
+            cos = mx.cos(theta).astype(x.dtype)
+            sin = (mx.sin(theta) * self.sin_sign).astype(x.dtype)
+            cos = mx.expand_dims(cos, (0, 1))
+            sin = mx.expand_dims(sin, (0, 1))
 
         # Reverse adjacent pairs in the head dimension: [a, b] -> [b, a]
         x_pairs = x.reshape(*x.shape[:-1], -1, 2)
@@ -424,10 +433,22 @@ class LimiteModel(nn.Module):
         mask_global = None
         mask_local = None
         if S > 1:
-            offset = cache[0].offset if cache is not None and cache[0] is not None else 0
-            mask_global = create_causal_mask(S, offset=offset)
+            c = cache[0] if cache is not None and len(cache) > 0 and cache[0] is not None else None
+            left_padding = None
+            if c is not None:
+                if hasattr(c, "_idx"):
+                    offset = c._idx
+                    left_padding = getattr(c, "left_padding", None)
+                elif isinstance(c.offset, mx.array):
+                    offset = int(c.offset[0].item()) if c.offset.ndim > 0 else int(c.offset.item())
+                else:
+                    offset = c.offset
+            else:
+                offset = 0
+
+            mask_global = create_causal_mask(S, offset=offset, left_padding=left_padding)
             mask_local = create_causal_mask(
-                S, offset=offset, window_size=self.sliding_window + 1
+                S, offset=offset, window_size=self.sliding_window + 1, left_padding=left_padding
             )
 
         history: dict[int, mx.array] = {0: x} if self.mudd_tap_idx else {}
