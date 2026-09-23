@@ -50,51 +50,32 @@ Despite having only 1B parameters and being trained from scratch on less than 30
 Using [`uv`](https://docs.astral.sh/uv/):
 
 ```bash
-git clone https://github.com/gabrielribeiro/mlx-Limite-1B-Violetto.git
-cd mlx-Limite-1B-Violetto
+git clone https://github.com/gabe-rbo/mlx-limite-1b-violetto.git
+cd mlx-limite-1b-violetto
 uv sync
 ```
 
 Or using standard pip:
 
 ```bash
-pip install -r pyproject.toml
+pip install mlx-lm
 ```
 
-### 2. Convert Checkpoint to MLX Format
+### 2. Immediate Inference via Hugging Face Hub
 
-Download and convert the official Hugging Face weights:
+The converted model is publicly hosted on Hugging Face at [`gabe-rbo/limite-1b-violetto-mlx`](https://huggingface.co/gabe-rbo/limite-1b-violetto-mlx). You can run it immediately without converting:
 
 ```bash
-uv run python convert.py --hf-repo paradigma-inc/limite-1b-violetto --mlx-path ./mlx_model
+uv run python generate.py --model gabe-rbo/limite-1b-violetto-mlx --prompt "Find the number of positive integers n <= 100 such that gcd(n, 20) = 1."
 ```
 
-This step:
-* Downloads the weights from Hugging Face.
-* Folds learned projection scales (`qkv_scale`, `o_scale`) into the projection weights.
-* Prepares the model directory with `model.py` and `config.json` configured for `mlx-lm`.
-
-### 3. Run Inference
-
-#### Via CLI Generator:
-
-```bash
-uv run python generate.py --model ./mlx_model --prompt "Find the number of positive integers n <= 100 such that gcd(n, 20) = 1."
-```
-
-Recommended sampling parameters are set by default (`temperature=0.6`, `top_p=0.95`).
-
-#### In Python via `mlx-lm`:
-
-Because the converted model includes `"model_file": "model.py"` in its `config.json`, standard `mlx-lm` loads and runs it seamlessly:
+Or in Python:
 
 ```python
 import mlx_lm
 
-# Load converted MLX model and tokenizer
-model, tokenizer = mlx_lm.load("./mlx_model")
+model, tokenizer = mlx_lm.load("gabe-rbo/limite-1b-violetto-mlx")
 
-# Format problem using canonical ChatML math template
 prompt = (
     "<|im_start|>system\n"
     "You are a helpful assistant.\n"
@@ -114,6 +95,22 @@ response = mlx_lm.generate(
 )
 print(response)
 ```
+
+### 3. Local Conversion from Official Raw Weights (Optional)
+
+If you wish to re-convert the raw Hugging Face weights yourself:
+
+```bash
+uv run python convert.py --hf-repo paradigma-inc/limite-1b-violetto --mlx-path ./mlx_model
+```
+
+### 4. Running as a Local Server (LM Studio / Bionic / OpenAI API Compatible)
+
+```bash
+python -m mlx_lm server --model gabe-rbo/limite-1b-violetto-mlx --port 8080 --temp 0.6 --top-p 0.95
+```
+
+Point LM Studio, Bionic, or any OpenAI-compatible app to `http://localhost:8080/v1`.
 
 ---
 
