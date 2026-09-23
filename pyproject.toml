@@ -1,0 +1,29 @@
+[project]
+name = "mlx-limite-1b-violetto"
+version = "0.1.0"
+description = "Apple MLX implementation of Limite 1B - Violetto, the high-throughput mathematical reasoning model"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mlx>=0.22.0",
+    "mlx-lm>=0.21.0",
+    "transformers>=4.40.0",
+    "huggingface-hub>=0.20.0",
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "torch>=2.2.0",
+]
+
+[project.scripts]
+limite-convert = "convert:main"
+limite-generate = "generate:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["model", "convert", "generate"]
